@@ -113,7 +113,7 @@ gh --version >/dev/null 2>&1 || fail 'GitHub CLI is unavailable after installati
 command -v ssh >/dev/null 2>&1 || fail 'SSH is unavailable after installation'
 
 if [ -e "$destination" ]; then
-  [ -d "$destination" ] && [ ! -L "$destination/.git" ] || fail 'destination is not a regular checkout'
+  { [ -d "$destination" ] && [ ! -L "$destination/.git" ]; } || fail 'destination is not a regular checkout'
   checkout="$(git -C "$destination" rev-parse --show-toplevel)" || fail 'destination is not a Git checkout'
   [ "$checkout" = "$(cd "$destination" && pwd -P)" ] || fail 'destination is inside another checkout'
   origin="$(git -C "$destination" remote get-url origin)" || fail 'destination has no origin'
@@ -144,8 +144,8 @@ elif [ "$ssh_ready" -eq 0 ]; then
   public_key="${selected_key:-$public_key}"
   if [ ! -f "$public_key" ]; then
     [ "$public_key" = "$HOME/.ssh/id_ed25519.pub" ] || fail 'selected public key does not exist'
-    [ ! -e "$HOME/.ssh/id_ed25519" ] && [ ! -L "$HOME/.ssh/id_ed25519" ] || fail 'private key already exists; select its public key without overwriting it'
-    [ ! -e "$public_key" ] && [ ! -L "$public_key" ] || fail 'public key path already exists'
+    { [ ! -e "$HOME/.ssh/id_ed25519" ] && [ ! -L "$HOME/.ssh/id_ed25519" ]; } || fail 'private key already exists; select its public key without overwriting it'
+    { [ ! -e "$public_key" ] && [ ! -L "$public_key" ]; } || fail 'public key path already exists'
     read -r -p 'Generate a new SSH key for this machine? [y/N] ' answer
     case "$answer" in
       y | Y | yes | YES)
@@ -169,7 +169,7 @@ if [ ! -e "$destination" ]; then
   mkdir -p "$parent"
   scratch="$(mktemp -d "$parent/.foundry-shim.XXXXXX")"
   git clone "$remote" "$scratch/checkout"
-  [ ! -e "$destination" ] && [ ! -L "$destination" ] || fail 'destination appeared during clone; refusing to replace it'
+  { [ ! -e "$destination" ] && [ ! -L "$destination" ]; } || fail 'destination appeared during clone; refusing to replace it'
   mv "$scratch/checkout" "$destination"
   cleanup
   scratch=''
