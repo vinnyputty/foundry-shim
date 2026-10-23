@@ -5,10 +5,18 @@ Prepare macOS or Ubuntu, authenticate to GitHub, clone [`vinnyputty/foundry`](ht
 Run this command in a terminal as your own user:
 
 ```sh
+(script=$(curl -fsSL https://raw.githubusercontent.com/vinnyputty/foundry-shim/main/install.sh) && [ -n "$script" ] && /bin/bash -c "$script")
+```
+
+The command downloads before executing, preserving terminal input for every installer and authentication prompt. It requires curl, which is included with macOS and available on Ubuntu. Failed or empty downloads stop execution.
+
+If curl is unavailable, use this command to try wget or install curl with apt:
+
+```sh
 /bin/bash -c 'set -e; url=https://raw.githubusercontent.com/vinnyputty/foundry-shim/main/install.sh; if command -v curl >/dev/null 2>&1; then script="$(curl -fsSL "$url")"; elif command -v wget >/dev/null 2>&1; then script="$(wget -qO - "$url")"; else sudo apt-get update; sudo apt-get install -y curl ca-certificates; script="$(curl -fsSL "$url")"; fi; [ -n "$script" ]; /bin/bash -c "$script"'
 ```
 
-The command downloads before executing, preserving terminal input for every installer and authentication prompt. Stock macOS includes curl; Ubuntu can use curl or wget, or install curl with sudo and apt when both are missing. A failed or empty download stops execution. To inspect the installer first, download [`install.sh`](install.sh), read it, then run `bash install.sh`. Choose another checkout with `bash install.sh --destination "$HOME/another/foundry"`.
+The fallback also downloads before executing, preserving terminal input for installer and authentication prompts. Failed or empty downloads stop execution. To inspect the installer first, download [`install.sh`](install.sh), read it, then run `bash install.sh`. Choose another checkout with `bash install.sh --destination "$HOME/another/foundry"`.
 
 Fresh installs target Apple Silicon macOS 15 or newer, and Ubuntu on x86_64 or aarch64, subject to [Homebrew's current platform requirements](https://docs.brew.sh/Installation) and [Linux requirements](https://docs.brew.sh/Homebrew-on-Linux). Existing Intel macOS Homebrew installations can be reused; new Intel installations are unsupported by the current upstream installer. Older operating systems may work with already installed tools, but are not promised fresh-install support.
 

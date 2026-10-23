@@ -68,6 +68,8 @@ elif name in ('curl', 'wget'):
     elif dest == '-':
         if not has('empty_download'):
             print((root / 'install.sh').read_text())
+        if has('partial_download_fail'):
+            sys.exit(28)
     else:
         sys.exit(28)
 elif name == 'git':

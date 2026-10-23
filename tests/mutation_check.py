@@ -97,8 +97,9 @@ if __name__ == '__main__':
             return source.replace(before, after)
         outcomes.append(run_mutation(name, method, mutate))
     for name, method, before, after in [
-        ('download failure propagation', 'test_readme_download_failures_stop', 'set -e;', ':' + ';'),
-        ('empty download refusal', 'test_readme_download_failures_stop', '[ -n "$script" ];', ':' + ';'),
+        ('download failure propagation', 'test_readme_download_failures_stop',
+         'install.sh) && [ -n "$script" ] &&', 'install.sh); [ -n "$script" ] &&'),
+        ('empty download refusal', 'test_readme_download_failures_stop', '[ -n "$script" ]', ':'),
         ('terminal stdin preservation', 'test_readme_command_preserves_terminal',
          '/bin/bash -c "$script"', 'printf \'%s\' "$script" | /bin/bash'),
     ]:

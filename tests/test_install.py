@@ -346,25 +346,61 @@ class InstallerTests(unittest.TestCase):
         self.assert_failure(self.run_installer(), 'no scripts/bootstrap.sh')
         self.assertEqual((self.dest / 'precious').read_text(), 'keep')
 
-    def readme_command(self):
-        return re.search(r'```sh\n(.*?)\n```', (REPO / 'README.md').read_text(), re.S).group(1)
+    def readme_command(self, fallback=False):
+        commands = re.findall(r'```sh\n(.*?)\n```', (REPO / 'README.md').read_text(), re.S)
+        self.assertGreaterEqual(len(commands), 3)
+        return commands[1 if fallback else 0]
 
     def test_readme_command_preserves_terminal(self):
-        for downloader in ('curl', 'wget', 'apt'):
-            with self.subTest(downloader=downloader):
-                if downloader in ('wget', 'apt') and (self.bin / 'curl').exists():
-                    (self.bin / 'curl').unlink()
-                if downloader == 'apt':
-                    (self.bin / 'wget').unlink()
-                self.assert_success(self.run_installer('auth_missing,ssh_missing', command=['/bin/bash', '-c', self.readme_command()]))
+        for shell in ('/bin/bash', '/bin/zsh'):
+            self.assertTrue(Path(shell).exists(), f'{shell} is required for README launch coverage')
+            with self.subTest(shell=shell):
+                self.assert_success(self.run_installer(
+                    'auth_missing,ssh_missing', command=[shell, '-c', self.readme_command()]))
         calls = [json.loads(line) for line in (self.root / 'calls').read_text().splitlines()]
         for name, args, tty in calls:
             if name in ('gh', 'git', 'provision-brew'):
                 self.assertTrue(tty, (name, args))
 
     def test_readme_download_failures_stop(self):
-        for scenario in ('download_fail', 'empty_download'):
-            self.assert_failure(self.run_installer(scenario, command=['/bin/bash', '-c', self.readme_command()]))
+        for shell in ('/bin/bash', '/bin/zsh'):
+            for scenario in ('download_fail', 'partial_download_fail', 'empty_download'):
+                with self.subTest(shell=shell, scenario=scenario):
+                    self.assert_failure(self.run_installer(
+                        scenario, command=[shell, '-c', self.readme_command()]))
+        self.assertFalse(self.calls('brew'))
+
+    def test_readme_fallback_downloaders(self):
+        for shell in ('/bin/bash', '/bin/zsh'):
+            for downloader in ('curl', 'wget', 'apt'):
+                with self.subTest(shell=shell, downloader=downloader, outcome='success'):
+                    for name in ('curl', 'wget'):
+                        (self.bin / name).unlink(missing_ok=True)
+                    if downloader in ('curl', 'wget'):
+                        (self.bin / downloader).symlink_to(self.root / 'dispatcher')
+                    result = self.run_installer(
+                        'auth_missing,ssh_missing',
+                        command=[shell, '-c', self.readme_command(fallback=True)])
+                    self.assert_success(result)
+
+                with self.subTest(shell=shell, downloader=downloader, outcome='failure'):
+                    for name in ('curl', 'wget'):
+                        (self.bin / name).unlink(missing_ok=True)
+                    scenario = 'apt_fail' if downloader == 'apt' else 'partial_download_fail'
+                    if downloader in ('curl', 'wget'):
+                        (self.bin / downloader).symlink_to(self.root / 'dispatcher')
+                    brew_calls = len(self.calls('brew'))
+                    result = self.run_installer(
+                        scenario, command=[shell, '-c', self.readme_command(fallback=True)])
+                    self.assert_failure(result)
+                    self.assertEqual(len(self.calls('brew')), brew_calls)
+
+    def test_readme_command_requires_terminal(self):
+        for shell in ('/bin/bash', '/bin/zsh'):
+            with self.subTest(shell=shell):
+                self.assert_failure(self.run_installer(
+                    tty=False, command=[shell, '-c', self.readme_command()]),
+                    'run from a terminal')
         self.assertFalse(self.calls('brew'))
 
 

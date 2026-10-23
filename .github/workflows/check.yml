@@ -23,10 +23,11 @@ jobs:
             brew install shellcheck
           else
             sudo apt-get update
-            sudo apt-get install -y shellcheck
+            sudo apt-get install -y shellcheck zsh
           fi
           go install mvdan.cc/sh/v3/cmd/shfmt@v3.14.1
       - run: bash -n install.sh
       - run: shellcheck install.sh
       - run: shfmt -d -i 2 -ci install.sh
-      - run: python3 -m unittest discover -s tests -v
+      - name: Test installer and Bash/zsh README launches
+        run: python3 -m unittest discover -s tests -v
